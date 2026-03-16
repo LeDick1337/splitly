@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>Splitly</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #0e0f12;
+  --card:     #16181d;
+  --card2:    #1d1f26;
+  --border:   rgba(255,255,255,0.07);
+  --border2:  rgba(255,255,255,0.12);
+  --text:     #f0f2f5;
+  --text2:    #8b90a0;
+  --text3:    #4e5262;
+  --teal:     #3dd9c5;
+  --teal-dim: rgba(61,217,197,0.12);
+  --pink:     #f06292;
+  --pink-dim: rgba(240,98,146,0.12);
+  --amber:    #ffca28;
+  --amber-dim:rgba(255,202,40,0.12);
+  --green:    #66bb6a;
+  --green-dim:rgba(102,187,106,0.12);
+  --r: 18px; --r-sm: 12px; --r-xs: 8px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+
+/* LOGIN SCREEN */
+.login-screen {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 200;
+  gap: 0;
+  padding: 32px;
+}
+.login-screen.hidden { display: none; }
+.login-logo { font-size: 42px; font-weight: 700; letter-spacing: -1px; margin-bottom: 8px; }
+.login-logo span { color: var(--teal); }
+.login-sub { font-size: 14px; color: var(--text3); margin-bottom: 52px; }
+.login-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 28px 24px;
+  width: 100%; max-width: 340px;
+  text-align: center;
+}
+.login-card h2 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+.login-card p  { font-size: 13px; color: var(--text3); margin-bottom: 24px; line-height: 1.5; }
+.btn-google {
+  width: 100%;
+  display: flex; align-items: center; justify-content: center; gap: 12px;
+  background: #fff;
+  color: #1f1f1f;
+  border: none;
+  border-radius: var(--r-sm);
+  padding: 13px 20px;
+  font-family: 'Inter', sans-serif;
+  font-size: 15px; font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+.btn-google:hover { opacity: 0.92; }
+.btn-google:active { transform: scale(0.97); }
+.btn-google svg { flex-shrink: 0; }
+.login-error {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--pink);
+  background: var(--pink-dim);
+  border: 1px solid rgba(240,98,146,0.2);
+  border-radius: var(--r-xs);
+  padding: 10px 14px;
+  display: none;
+}
+.login-error.show { display: block; }
+
+/* LOADING */
+.loading-screen {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 199;
+  flex-direction: column; gap: 16px;
+}
+.loading-screen.hidden { display: none; }
+.spinner {
+  width: 32px; height: 32px;
+  border: 3px solid var(--border2);
+  border-top-color: var(--teal);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 14px; color: var(--text3); }
+
+/* MAIN APP */
+.app {
+  display: flex; flex-direction: column;
+  height: 100vh;
+  max-width: 480px; margin: 0 auto;
+  position: relative; overflow: hidden;
+}
+.topbar { flex-shrink: 0; padding: 52px 24px 0; background: var(--bg); }
+.topbar-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.app-title { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+.app-title span { color: var(--teal); }
+.topbar-right { display: flex; align-items: center; gap: 8px; }
+.user-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--teal-dim); border: 1px solid rgba(61,217,197,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 600; color: var(--teal);
+  overflow: hidden; cursor: default;
+}
+.user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.icon-btn {
+  width: 42px; height: 42px; border-radius: 50%;
+  background: var(--card2); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background 0.15s, transform 0.1s; color: var(--text2);
+}
+.icon-btn:hover { background: var(--border2); }
+.icon-btn:active { transform: scale(0.92); }
+
+/* SUMMARY */
+.summary-bar { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 18px 24px 0; }
+.sum-chip { background: var(--card); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 12px 10px; text-align: center; }
+.sum-chip .s-val { font-size: 17px; font-weight: 700; color: var(--text); display: block; white-space: nowrap; }
+.sum-chip .s-lbl { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 3px; }
+
+/* BALANCE */
+.balance-strip { padding: 12px 24px 0; }
+.balance-badge { border-radius: var(--r-sm); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; font-size: 13px; font-weight: 500; }
+.balance-badge.clear { background: var(--green-dim); color: var(--green); }
+.balance-badge.owed  { background: var(--amber-dim); color: var(--amber); }
+.balance-badge .b-amount { font-size: 16px; font-weight: 700; }
+
+/* TABS */
+.tabs { flex-shrink: 0; display: flex; padding: 14px 24px 0; }
+.tab { flex: 1; padding: 10px 0; text-align: center; font-size: 14px; font-weight: 500; color: var(--text3); cursor: pointer; border-bottom: 2px solid transparent; transition: color 0.2s, border-color 0.2s; user-select: none; }
+.tab.active { color: var(--teal); border-bottom-color: var(--teal); }
+.tab-count { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; background: var(--card2); color: var(--text3); border-radius: 9px; font-size: 11px; font-weight: 600; padding: 0 5px; margin-left: 6px; transition: all 0.2s; }
+.tab.active .tab-count { background: var(--teal-dim); color: var(--teal); }
+
+/* LIST */
+.list-wrap { flex: 1; overflow-y: auto; padding: 14px 24px 100px; scroll-behavior: smooth; }
+.list-wrap::-webkit-scrollbar { width: 0; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+.date-label { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.1em; padding: 10px 0 6px; }
+
+/* CARD */
+.exp-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--r); padding: 14px 16px; margin-bottom: 10px; transition: opacity 0.3s; animation: slideIn 0.28s cubic-bezier(0.34,1.3,0.64,1); }
+@keyframes slideIn { from { opacity: 0; transform: translateY(12px) scale(0.97); } to { opacity: 1; transform: none; } }
+.exp-card.settled { opacity: 0.5; }
+
+@keyframes settleFlash {
+  0%   { background: var(--card); border-color: var(--border); }
+  25%  { background: rgba(102,187,106,0.18); border-color: rgba(102,187,106,0.6); box-shadow: 0 0 0 3px rgba(102,187,106,0.15); }
+  60%  { background: rgba(102,187,106,0.14); border-color: rgba(102,187,106,0.5); }
+  100% { background: var(--card); border-color: var(--border); }
+}
+@keyframes settleOut {
+  0%   { opacity: 1; transform: none; max-height: 300px; margin-bottom: 10px; }
+  30%  { opacity: 1; transform: translateX(6px) scale(1.01); }
+  60%  { opacity: 0; transform: translateX(40px) scale(0.97); max-height: 300px; margin-bottom: 10px; }
+  100% { opacity: 0; transform: translateX(40px) scale(0.97); max-height: 0; margin-bottom: 0; padding: 0; }
+}
+.exp-card.settling { animation: settleFlash 0.45s ease forwards, settleOut 0.65s 0.3s cubic-bezier(0.4,0,0.6,1) forwards; overflow: hidden; pointer-events: none; }
+.exp-card.settling .pill.p1, .exp-card.settling .pill.p2 { background: rgba(102,187,106,0.15) !important; border-color: rgba(102,187,106,0.35) !important; }
+.exp-card.settling .pill-amt { color: var(--green) !important; }
+.exp-card.settling .pill.done .pill-check { background: var(--green) !important; }
+
+.exp-row1 { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.exp-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; background: var(--card2); }
+.exp-info { flex: 1; min-width: 0; }
+.exp-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.exp-meta { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.exp-total { font-size: 18px; font-weight: 700; white-space: nowrap; }
+.split-pills { display: flex; gap: 8px; }
+.pill { flex: 1; display: flex; align-items: center; justify-content: space-between; gap: 6px; border-radius: 10px; padding: 9px 11px; cursor: pointer; transition: filter 0.15s, transform 0.1s; user-select: none; border: 1.5px solid transparent; }
+.pill.p1 { background: var(--teal-dim); border-color: rgba(61,217,197,0.2); }
+.pill.p2 { background: var(--pink-dim); border-color: rgba(240,98,146,0.2); }
+.pill:active { transform: scale(0.95); }
+.pill-name { font-size: 11px; color: var(--text2); }
+.pill-amt  { font-size: 15px; font-weight: 700; }
+.pill.p1 .pill-amt { color: var(--teal); }
+.pill.p2 .pill-amt { color: var(--pink); }
+.pill-check { width: 22px; height: 22px; flex-shrink: 0; border-radius: 50%; border: 2px solid; display: flex; align-items: center; justify-content: center; transition: all 0.2s cubic-bezier(0.34,1.4,0.64,1); }
+.pill.p1 .pill-check { border-color: var(--teal); }
+.pill.p2 .pill-check { border-color: var(--pink); }
+.pill.p1.done .pill-check { background: var(--teal); }
+.pill.p2.done .pill-check { background: var(--pink); }
+.pill-check svg { display: none; }
+.pill.done .pill-check svg { display: block; }
+
+.badge-recurring { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 600; color: var(--amber); background: var(--amber-dim); border: 1px solid rgba(255,202,40,0.2); border-radius: 20px; padding: 2px 7px; margin-left: 6px; vertical-align: middle; }
+.exp-note { font-size: 12px; color: var(--text2); background: var(--card2); border-radius: var(--r-xs); padding: 7px 10px; margin-top: 10px; border-left: 2px solid var(--border2); line-height: 1.5; }
+.card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border); }
+.footer-actions { display: flex; gap: 4px; }
+.btn-icon-sm { background: none; border: none; font-size: 12px; font-family: 'Inter', sans-serif; color: var(--text3); cursor: pointer; padding: 4px 8px; display: flex; align-items: center; gap: 5px; border-radius: 6px; transition: color 0.15s, background 0.15s; }
+.btn-icon-sm.edit:hover { color: var(--teal); background: var(--teal-dim); }
+.btn-icon-sm.del:hover  { color: var(--pink); background: var(--pink-dim); }
+
+.empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 0; color: var(--text3); gap: 10px; }
+.empty .e-icon { font-size: 44px; opacity: 0.25; }
+.empty p { font-size: 15px; }
+
+/* FAB */
+.fab { position: absolute; bottom: 32px; right: 24px; width: 58px; height: 58px; border-radius: 50%; background: linear-gradient(135deg, var(--teal), #29b3a1); box-shadow: 0 4px 20px rgba(61,217,197,0.4); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; color: #0e0f12; transition: transform 0.15s cubic-bezier(0.34,1.4,0.64,1), box-shadow 0.15s; z-index: 10; }
+.fab:hover { transform: scale(1.08); box-shadow: 0 6px 28px rgba(61,217,197,0.5); }
+.fab:active { transform: scale(0.93); }
+
+/* OVERLAYS */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); z-index: 100; display: none; align-items: flex-end; justify-content: center; }
+.overlay.show { display: flex; animation: fadeO 0.2s ease; }
+@keyframes fadeO { from { opacity: 0; } to { opacity: 1; } }
+.sheet { width: 100%; max-width: 480px; background: var(--card); border-radius: 28px 28px 0 0; padding: 12px 24px 40px; animation: sheetUp 0.32s cubic-bezier(0.34,1.1,0.64,1); max-height: 92vh; overflow-y: auto; }
+.sheet::-webkit-scrollbar { width: 0; }
+@keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.sheet-handle { width: 40px; height: 4px; background: var(--border2); border-radius: 2px; margin: 0 auto 20px; }
+.sheet-title { font-size: 20px; font-weight: 700; margin-bottom: 22px; }
+
+/* FORM */
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 7px; }
+.field input, .field select { width: 100%; background: var(--card2); border: 1.5px solid var(--border); border-radius: var(--r-sm); color: var(--text); font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 500; padding: 13px 14px; outline: none; transition: border-color 0.2s; -webkit-appearance: none; appearance: none; }
+.field input::placeholder { color: var(--text3); font-weight: 400; }
+.field input:focus, .field select:focus { border-color: var(--teal); }
+.field select option { background: #1d1f26; }
+.field textarea { width: 100%; background: var(--card2); border: 1.5px solid var(--border); border-radius: var(--r-sm); color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 400; padding: 12px 14px; outline: none; resize: none; min-height: 72px; transition: border-color 0.2s; line-height: 1.5; }
+.field textarea::placeholder { color: var(--text3); }
+.field textarea:focus { border-color: var(--teal); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.cat-picker { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; }
+.cat-opt { aspect-ratio: 1; border-radius: var(--r-xs); background: var(--card2); border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; transition: all 0.15s; user-select: none; }
+.cat-opt.selected { border-color: var(--teal); background: var(--teal-dim); transform: scale(1.1); }
+.btn-primary { width: 100%; padding: 15px; background: linear-gradient(135deg, var(--teal), #29b3a1); color: #0e0f12; border: none; border-radius: var(--r-sm); font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 6px; transition: opacity 0.15s, transform 0.1s; }
+.btn-primary:hover { opacity: 0.9; }
+.btn-primary:active { transform: scale(0.98); }
+
+/* TOGGLE */
+.toggle-row { display: flex; align-items: center; justify-content: space-between; background: var(--card2); border: 1.5px solid var(--border); border-radius: var(--r-sm); padding: 12px 14px; margin-bottom: 14px; cursor: pointer; user-select: none; transition: border-color 0.2s; }
+.toggle-row:hover { border-color: var(--border2); }
+.toggle-row.on { border-color: rgba(255,202,40,0.35); }
+.toggle-info { display: flex; align-items: center; gap: 10px; }
+.toggle-icon { font-size: 18px; }
+.toggle-label { font-size: 14px; font-weight: 500; color: var(--text); }
+.toggle-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.toggle-switch { width: 42px; height: 24px; background: var(--card); border: 1.5px solid var(--border2); border-radius: 12px; position: relative; transition: background 0.2s, border-color 0.2s; flex-shrink: 0; }
+.toggle-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--text3); transition: transform 0.2s cubic-bezier(0.34,1.4,0.64,1), background 0.2s; }
+.toggle-row.on .toggle-switch { background: var(--amber-dim); border-color: var(--amber); }
+.toggle-row.on .toggle-switch::after { transform: translateX(18px); background: var(--amber); }
+
+/* SETTINGS */
+.settings-section { margin-bottom: 22px; }
+.settings-section h4 { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); margin-bottom: 12px; }
+.income-row { display: flex; align-items: center; gap: 10px; background: var(--card2); border: 1.5px solid var(--border); border-radius: var(--r-sm); padding: 10px 14px; margin-bottom: 10px; transition: border-color 0.2s; }
+.income-row:focus-within { border-color: var(--teal); }
+.income-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.income-name-in { background: none; border: none; color: var(--text); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; width: 80px; outline: none; flex-shrink: 0; }
+.sep { color: var(--text3); font-size: 18px; flex-shrink: 0; }
+.income-amt-wrap { flex: 1; display: flex; align-items: center; gap: 4px; }
+.income-amt-wrap span { font-size: 13px; color: var(--text3); flex-shrink: 0; }
+.income-amt-in { background: none; border: none; color: var(--text); font-family: 'Inter', sans-serif; font-size: 17px; font-weight: 700; width: 100%; outline: none; text-align: right; }
+input[type=number]::-webkit-inner-spin-button, input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+.ratio-preview { background: var(--card2); border-radius: var(--r-sm); padding: 14px; }
+.ratio-preview-labels { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 13px; font-weight: 600; }
+.rbar { height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; }
+.rbar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--teal), var(--pink)); transition: width 0.4s; }
+.btn-save { width: 100%; padding: 15px; background: var(--card2); color: var(--teal); border: 1.5px solid rgba(61,217,197,0.3); border-radius: var(--r-sm); font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 700; cursor: pointer; transition: background 0.15s; }
+.btn-save:hover { background: var(--teal-dim); }
+.btn-signout { width: 100%; padding: 13px; background: none; color: var(--text3); border: 1.5px solid var(--border); border-radius: var(--r-sm); font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; margin-top: 10px; transition: all 0.15s; }
+.btn-signout:hover { color: var(--pink); border-color: rgba(240,98,146,0.3); background: var(--pink-dim); }
+
+/* SYNC INDICATOR */
+.sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); display: inline-block; margin-left: 8px; vertical-align: middle; }
+.sync-dot.syncing { background: var(--amber); animation: pulse 1s infinite; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-screen" id="loading-screen">
+  <div class="spinner"></div>
+  <div class="loading-text">Verbinde…</div>
+</div>
+
+<!-- LOGIN -->
+<div class="login-screen hidden" id="login-screen">
+  <div class="login-logo">Split<span>ly</span></div>
+  <div class="login-sub">Gemeinsame Finanzen, fair geteilt</div>
+  <div class="login-card">
+    <h2>Anmelden</h2>
+    <p>Nur für berechtigte Nutzer.<br>Melde dich mit deinem Google-Konto an.</p>
+    <button class="btn-google" onclick="signInWithGoogle()">
+      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.08 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-3.59-13.46-8.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Mit Google anmelden
+    </button>
+    <div class="login-error" id="login-error">Kein Zugriff. Dieses Konto ist nicht berechtigt.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="main-app" style="display:none">
+  <div class="topbar">
+    <div class="topbar-row">
+      <div class="app-title">Split<span>ly</span><span class="sync-dot" id="sync-dot"></span></div>
+      <div class="topbar-right">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div class="icon-btn" onclick="openSettings()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="summary-bar">
+    <div class="sum-chip"><span class="s-val" id="s-total">€0</span><div class="s-lbl">Offen ges.</div></div>
+    <div class="sum-chip"><span class="s-val" style="color:var(--teal)" id="s-p1">€0</span><div class="s-lbl" id="s-lbl1">Jan</div></div>
+    <div class="sum-chip"><span class="s-val" style="color:var(--pink)" id="s-p2">€0</span><div class="s-lbl" id="s-lbl2">Lorena</div></div>
+  </div>
+
+  <div class="balance-strip">
+    <div class="balance-badge clear" id="balance-badge">
+      <span id="balance-text">Alles ausgeglichen ✓</span>
+      <span class="b-amount" id="balance-amt"></span>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('open',this)">Offen <span class="tab-count" id="cnt-open">0</span></div>
+    <div class="tab" onclick="switchTab('settled',this)">Beglichen <span class="tab-count" id="cnt-settled">0</span></div>
+  </div>
+
+  <div class="list-wrap">
+    <div class="tab-pane active" id="pane-open"></div>
+    <div class="tab-pane" id="pane-settled"></div>
+  </div>
+
+  <button class="fab" onclick="openAdd()">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+    </svg>
+  </button>
+</div>
+
+<!-- ADD SHEET -->
+<div class="overlay" id="add-overlay" onclick="closeOverlay('add-overlay',event)">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Neue Ausgabe</div>
+    <div class="field"><label>Bezeichnung</label><input type="text" id="f-name" placeholder="z. B. Miete April" /></div>
+    <div class="row2">
+      <div class="field"><label>Betrag (€)</label><input type="number" id="f-amount" placeholder="0,00" min="0" step="0.01" /></div>
+      <div class="field"><label>Datum</label><input type="date" id="f-date" /></div>
+    </div>
+    <div class="field"><label>Kategorie</label><div class="cat-picker" id="cat-picker"></div></div>
+    <div class="field">
+      <label>Wer hat vorgestreckt?</label>
+      <select id="f-paidby">
+        <option value="none">— Noch offen —</option>
+        <option value="p1" id="fp1-opt">Jan hat bezahlt</option>
+        <option value="p2" id="fp2-opt">Lorena hat bezahlt</option>
+        <option value="both">Beide direkt bezahlt</option>
+      </select>
+    </div>
+    <div class="field"><label>Notiz (optional)</label><textarea id="f-note" placeholder="z. B. Nachzahlung inkl. Vorauszahlung…"></textarea></div>
+    <div class="toggle-row" id="f-recurring-row" onclick="toggleRecurring('f-recurring-row','f-recurring')">
+      <div class="toggle-info"><div class="toggle-icon">🔁</div><div><div class="toggle-label">Monatlich wiederkehrend</div><div class="toggle-sub">Nächster Monat wird automatisch erstellt</div></div></div>
+      <div class="toggle-switch"></div>
+    </div>
+    <input type="hidden" id="f-recurring" value="0" />
+    <button class="btn-primary" onclick="addExpense()">Hinzufügen</button>
+  </div>
+</div>
+
+<!-- EDIT SHEET -->
+<div class="overlay" id="edit-overlay" onclick="closeOverlay('edit-overlay',event)">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Ausgabe bearbeiten</div>
+    <input type="hidden" id="e-id" />
+    <div class="field"><label>Bezeichnung</label><input type="text" id="e-name" /></div>
+    <div class="row2">
+      <div class="field"><label>Betrag (€)</label><input type="number" id="e-amount" min="0" step="0.01" /></div>
+      <div class="field"><label>Datum</label><input type="date" id="e-date" /></div>
+    </div>
+    <div class="field"><label>Kategorie</label><div class="cat-picker" id="edit-cat-picker"></div></div>
+    <div class="field">
+      <label>Wer hat vorgestreckt?</label>
+      <select id="e-paidby">
+        <option value="none">— Noch offen —</option>
+        <option value="p1" id="ep1-opt">Jan hat bezahlt</option>
+        <option value="p2" id="ep2-opt">Lorena hat bezahlt</option>
+        <option value="both">Beide direkt bezahlt</option>
+      </select>
+    </div>
+    <div class="field"><label>Notiz (optional)</label><textarea id="e-note" placeholder="z. B. Nachzahlung…"></textarea></div>
+    <div class="toggle-row" id="e-recurring-row" onclick="toggleRecurring('e-recurring-row','e-recurring')">
+      <div class="toggle-info"><div class="toggle-icon">🔁</div><div><div class="toggle-label">Monatlich wiederkehrend</div><div class="toggle-sub">Nächster Monat wird automatisch erstellt</div></div></div>
+      <div class="toggle-switch"></div>
+    </div>
+    <input type="hidden" id="e-recurring" value="0" />
+    <button class="btn-primary" onclick="saveEdit()">Änderungen speichern</button>
+  </div>
+</div>
+
+<!-- SETTINGS SHEET -->
+<div class="overlay" id="set-overlay" onclick="closeOverlay('set-overlay',event)">
+  <div class="sheet" onclick="event.stopPropagation()">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Einstellungen</div>
+    <div class="settings-section">
+      <h4>Nettoeinkommen</h4>
+      <div class="income-row">
+        <div class="income-dot" style="background:var(--teal)"></div>
+        <input class="income-name-in" id="s-name1" value="Jan" maxlength="12" oninput="updateRatioPreview()" />
+        <div class="sep">|</div>
+        <div class="income-amt-wrap"><span>€</span><input class="income-amt-in" type="number" id="s-inc1" value="2200" oninput="updateRatioPreview()" /></div>
+      </div>
+      <div class="income-row">
+        <div class="income-dot" style="background:var(--pink)"></div>
+        <input class="income-name-in" id="s-name2" value="Lorena" maxlength="12" oninput="updateRatioPreview()" />
+        <div class="sep">|</div>
+        <div class="income-amt-wrap"><span>€</span><input class="income-amt-in" type="number" id="s-inc2" value="1800" oninput="updateRatioPreview()" /></div>
+      </div>
+    </div>
+    <div class="settings-section">
+      <h4>Kostenaufteilung Vorschau</h4>
+      <div class="ratio-preview">
+        <div class="ratio-preview-labels">
+          <span style="color:var(--teal)" id="rp-lbl1">Jan · 55%</span>
+          <span style="color:var(--pink)" id="rp-lbl2">Lorena · 45%</span>
+        </div>
+        <div class="rbar"><div class="rbar-fill" id="rbar" style="width:55%"></div></div>
+      </div>
+    </div>
+    <button class="btn-save" onclick="saveSettings()">Speichern & Anwenden</button>
+    <button class="btn-signout" onclick="signOut()">Abmelden</button>
+  </div>
+</div>
+
+<!-- FIREBASE SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<script>
+// ── CONFIG ──
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyC8YzOk6x3lrQ0rbL0wQHQOqiqeRZbXs2o",
+  authDomain: "splitly-9b2b4.firebaseapp.com",
+  projectId: "splitly-9b2b4",
+  storageBucket: "splitly-9b2b4.firebasestorage.app",
+  messagingSenderId: "1037352532158",
+  appId: "1:1037352532158:web:3c27c41730455d9a7906ef"
+};
+
+const ALLOWED_EMAILS = [
+  "janfaller14@gmail.com",
+  "lorenaromanonelly2@gmail.com"
+];
+
+// ── INIT FIREBASE ──
+firebase.initializeApp(FIREBASE_CONFIG);
+const auth = firebase.auth();
+const db   = firebase.firestore();
+
+// ── STATE ──
+const CATS = [
+  {e:'🏠'},{e:'⚡'},{e:'🔥'},{e:'🗑️'},{e:'💧'},{e:'📱'},
+  {e:'🛒'},{e:'🚗'},{e:'🍽️'},{e:'✈️'},{e:'🏥'},{e:'📦'}
+];
+
+let expenses  = [];
+let settings  = { name1:'Jan', name2:'Lorena', inc1:2200, inc2:1800 };
+let selCat    = '🏠';
+let editCat   = '🏠';
+let unsubExp  = null;
+let unsubSet  = null;
+
+// ── AUTH ──
+auth.onAuthStateChanged(user => {
+  document.getElementById('loading-screen').classList.add('hidden');
+  if (user) {
+    if (!ALLOWED_EMAILS.includes(user.email)) {
+      auth.signOut();
+      showLogin();
+      document.getElementById('login-error').classList.add('show');
+      return;
+    }
+    showApp(user);
+  } else {
+    showLogin();
+  }
+});
+
+function signInWithGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(() => {
+    document.getElementById('login-error').classList.add('show');
+  });
+}
+
+function signOut() {
+  if (unsubExp) unsubExp();
+  if (unsubSet) unsubSet();
+  auth.signOut();
+  document.getElementById('set-overlay').classList.remove('show');
+}
+
+function showLogin() {
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('login-screen').classList.remove('hidden');
+}
+
+function showApp(user) {
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('main-app').style.display = 'flex';
+
+  // Avatar
+  const av = document.getElementById('user-avatar');
+  if (user.photoURL) {
+    av.innerHTML = `<img src="${user.photoURL}" alt="">`;
+  } else {
+    av.textContent = user.displayName ? user.displayName[0].toUpperCase() : '?';
+  }
+
+  startListeners();
+  buildCatPicker();
+  document.getElementById('f-date').value = todayStr();
+}
+
+// ── FIRESTORE LISTENERS ──
+function startListeners() {
+  setSyncing(true);
+
+  // Settings listener
+  unsubSet = db.collection('settings').doc('config')
+    .onSnapshot(snap => {
+      if (snap.exists) {
+        settings = snap.data();
+      }
+      applyNames();
+      render();
+    }, () => setSyncing(false));
+
+  // Expenses listener
+  unsubExp = db.collection('expenses')
+    .orderBy('createdAt', 'desc')
+    .onSnapshot(snap => {
+      expenses = snap.docs.map(d => ({ ...d.data(), id: d.id }));
+      render();
+      setSyncing(false);
+    }, () => setSyncing(false));
+}
+
+function setSyncing(on) {
+  document.getElementById('sync-dot').classList.toggle('syncing', on);
+}
+
+// ── FIRESTORE CRUD ──
+async function fsAddExpense(data) {
+  setSyncing(true);
+  await db.collection('expenses').add({ ...data, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+}
+
+async function fsUpdateExpense(id, data) {
+  setSyncing(true);
+  await db.collection('expenses').doc(id).update(data);
+}
+
+async function fsDeleteExpense(id) {
+  setSyncing(true);
+  await db.collection('expenses').doc(id).delete();
+}
+
+async function fsSaveSettings(data) {
+  setSyncing(true);
+  await db.collection('settings').doc('config').set(data);
+}
+
+// ── HELPERS ──
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+function fmt(n) { if (n === 0) return '€0'; return '€' + Math.abs(n).toFixed(2).replace('.', ',').replace(/,00$/, ''); }
+function getRatio() {
+  const t = (settings.inc1||0) + (settings.inc2||0);
+  if (!t) return { r1:0.5, r2:0.5 };
+  return { r1: settings.inc1/t, r2: settings.inc2/t };
+}
+
+function applyNames() {
+  const {name1, name2} = settings;
+  document.getElementById('s-lbl1').textContent = name1;
+  document.getElementById('s-lbl2').textContent = name2;
+  document.getElementById('fp1-opt').textContent = name1 + ' hat bezahlt';
+  document.getElementById('fp2-opt').textContent = name2 + ' hat bezahlt';
+  document.getElementById('ep1-opt').textContent = name1 + ' hat bezahlt';
+  document.getElementById('ep2-opt').textContent = name2 + ' hat bezahlt';
+  document.getElementById('s-name1').value = name1;
+  document.getElementById('s-name2').value = name2;
+  document.getElementById('s-inc1').value  = settings.inc1;
+  document.getElementById('s-inc2').value  = settings.inc2;
+  updateRatioPreview();
+}
+
+// ── CATEGORY PICKER ──
+function buildCatPicker() {
+  document.getElementById('cat-picker').innerHTML = CATS.map(c =>
+    `<div class="cat-opt${c.e===selCat?' selected':''}" onclick="selectCat('${c.e}',this)">${c.e}</div>`
+  ).join('');
+}
+function selectCat(e, el) {
+  selCat = e;
+  document.querySelectorAll('#cat-picker .cat-opt').forEach(x => x.classList.remove('selected'));
+  el.classList.add('selected');
+}
+function buildEditCatPicker() {
+  document.getElementById('edit-cat-picker').innerHTML = CATS.map(c =>
+    `<div class="cat-opt${c.e===editCat?' selected':''}" onclick="selectEditCat('${c.e}',this)">${c.e}</div>`
+  ).join('');
+}
+function selectEditCat(e, el) {
+  editCat = e;
+  document.querySelectorAll('#edit-cat-picker .cat-opt').forEach(x => x.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+// ── TABS ──
+function switchTab(tab, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.getElementById('pane-' + tab).classList.add('active');
+}
+
+// ── RENDER ──
+function render() {
+  const open    = expenses.filter(e => !e.paid1 || !e.paid2);
+  const settled = expenses.filter(e => e.paid1 && e.paid2);
+  document.getElementById('cnt-open').textContent    = open.length;
+  document.getElementById('cnt-settled').textContent = settled.length;
+  renderPane('pane-open', open);
+  renderPane('pane-settled', settled);
+  renderSummary();
+  renderBalance();
+}
+
+function renderPane(paneId, list) {
+  const pane = document.getElementById(paneId);
+  if (!list.length) { pane.innerHTML = `<div class="empty"><div class="e-icon">🧾</div><p>Keine Ausgaben hier</p></div>`; return; }
+  const groups = {};
+  list.forEach(e => { const k = e.date||''; (groups[k] = groups[k]||[]).push(e); });
+  const keys = Object.keys(groups).sort((a,b) => b.localeCompare(a));
+  pane.innerHTML = keys.map(k =>
+    `<div class="date-label">${fmtDate(k)}</div>` + groups[k].map(e => cardHTML(e)).join('')
+  ).join('');
+}
+
+function fmtDate(d) {
+  if (!d) return 'Kein Datum';
+  const date = new Date(d + 'T00:00:00');
+  const diff = Math.floor((new Date() - date) / 86400000);
+  if (diff === 0) return 'Heute';
+  if (diff === 1) return 'Gestern';
+  return date.toLocaleDateString('de-DE', {day:'2-digit', month:'long', year:'numeric'});
+}
+
+function cardHTML(e) {
+  const settled  = e.paid1 && e.paid2;
+  const checkSVG = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0e0f12" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`;
+  const trashSVG = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>`;
+  const editSVG  = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`;
+  const recurBadge = e.recurring ? `<span class="badge-recurring">🔁 monatlich</span>` : '';
+  const noteBlock  = e.note ? `<div class="exp-note">${e.note}</div>` : '';
+  const sid = JSON.stringify(e.id);
+  return `
+<div class="exp-card${settled?' settled':''}">
+  <div class="exp-row1">
+    <div class="exp-icon">${e.cat||'📦'}</div>
+    <div class="exp-info">
+      <div class="exp-name">${e.name}${recurBadge}</div>
+      <div class="exp-meta">${fmtDate(e.date)}</div>
+    </div>
+    <div class="exp-total">${fmt(e.amount)}</div>
+  </div>
+  <div class="split-pills">
+    <div class="pill p1${e.paid1?' done':''}" onclick="togglePaid(${sid},1)">
+      <div><div class="pill-name">${settings.name1}</div><div class="pill-amt">${fmt(e.share1)}</div></div>
+      <div class="pill-check">${checkSVG}</div>
+    </div>
+    <div class="pill p2${e.paid2?' done':''}" onclick="togglePaid(${sid},2)">
+      <div><div class="pill-name">${settings.name2}</div><div class="pill-amt">${fmt(e.share2)}</div></div>
+      <div class="pill-check">${checkSVG}</div>
+    </div>
+  </div>
+  ${noteBlock}
+  <div class="card-footer">
+    <div class="footer-actions">
+      <button class="btn-icon-sm edit" onclick="editExp(${sid})">${editSVG} Bearbeiten</button>
+      <button class="btn-icon-sm del"  onclick="deleteExp(${sid})">${trashSVG} Löschen</button>
+    </div>
+  </div>
+</div>`;
+}
+
+function renderSummary() {
+  let o1=0, o2=0;
+  expenses.forEach(e => { if(!e.paid1) o1+=e.share1; if(!e.paid2) o2+=e.share2; });
+  document.getElementById('s-total').textContent = fmt(o1+o2);
+  document.getElementById('s-p1').textContent    = fmt(o1);
+  document.getElementById('s-p2').textContent    = fmt(o2);
+}
+
+function renderBalance() {
+  let owed1=0, owed2=0;
+  expenses.forEach(e => {
+    if (e.paidBy==='p1' && !e.paid2) owed1+=e.share2;
+    if (e.paidBy==='p2' && !e.paid1) owed2+=e.share1;
+  });
+  const diff  = owed1 - owed2;
+  const badge = document.getElementById('balance-badge');
+  if (Math.abs(diff) < 0.01) {
+    badge.className = 'balance-badge clear';
+    document.getElementById('balance-text').textContent = 'Alles ausgeglichen ✓';
+    document.getElementById('balance-amt').textContent  = '';
+  } else {
+    badge.className = 'balance-badge owed';
+    const debtor   = diff>0 ? settings.name2 : settings.name1;
+    const creditor = diff>0 ? settings.name1 : settings.name2;
+    document.getElementById('balance-text').textContent = `${debtor} schuldet ${creditor}`;
+    document.getElementById('balance-amt').textContent  = fmt(Math.abs(diff));
+  }
+}
+
+// ── ACTIONS ──
+async function togglePaid(id, person) {
+  const e = expenses.find(x => x.id === id);
+  if (!e) return;
+  const wasBothPaid = e.paid1 && e.paid2;
+  const newPaid1 = person===1 ? !e.paid1 : e.paid1;
+  const newPaid2 = person===2 ? !e.paid2 : e.paid2;
+  const nowBothPaid = newPaid1 && newPaid2;
+
+  // Animate card if settling
+  if (!wasBothPaid && nowBothPaid) {
+    const pane = document.getElementById('pane-open');
+    let targetCard = null;
+    pane.querySelectorAll('.exp-card').forEach(card => {
+      card.querySelectorAll('.pill').forEach(btn => {
+        if ((btn.getAttribute('onclick')||'').includes(`togglePaid(${JSON.stringify(id)},`)) targetCard = card;
+      });
+    });
+    if (targetCard) {
+      targetCard.querySelectorAll('.pill').forEach(p => p.classList.add('done'));
+      requestAnimationFrame(() => targetCard.classList.add('settling'));
+    }
+    if (e.recurring) setTimeout(() => spawnNextMonth(e), 970);
+  }
+
+  await fsUpdateExpense(id, { paid1: newPaid1, paid2: newPaid2 });
+}
+
+async function deleteExp(id) {
+  await fsDeleteExpense(id);
+}
+
+async function addExpense() {
+  const name      = document.getElementById('f-name').value.trim();
+  const amount    = parseFloat(document.getElementById('f-amount').value);
+  const date      = document.getElementById('f-date').value || todayStr();
+  const paidBy    = document.getElementById('f-paidby').value;
+  const note      = document.getElementById('f-note').value.trim();
+  const recurring = document.getElementById('f-recurring').value === '1';
+
+  if (!name || !amount || amount <= 0) {
+    const el = document.getElementById(!name ? 'f-name' : 'f-amount');
+    el.style.borderColor = 'var(--pink)'; el.focus();
+    setTimeout(() => el.style.borderColor='', 1500); return;
+  }
+
+  const {r1, r2} = getRatio();
+  const share1 = parseFloat((amount*r1).toFixed(2));
+  const share2 = parseFloat((amount-share1).toFixed(2));
+
+  await fsAddExpense({
+    name, amount, date, cat: selCat, paidBy, note, recurring,
+    share1, share2,
+    paid1: paidBy==='p1'||paidBy==='both',
+    paid2: paidBy==='p2'||paidBy==='both'
+  });
+
+  document.getElementById('add-overlay').classList.remove('show');
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-amount').value = '';
+  document.getElementById('f-paidby').value = 'none';
+  document.getElementById('f-note').value = '';
+  document.getElementById('f-date').value = todayStr();
+  document.getElementById('f-recurring').value = '0';
+  document.getElementById('f-recurring-row').classList.remove('on');
+}
+
+async function spawnNextMonth(src) {
+  const d = src.date ? new Date(src.date+'T00:00:00') : new Date();
+  d.setMonth(d.getMonth()+1);
+  await fsAddExpense({
+    name: src.name, amount: src.amount, date: d.toISOString().split('T')[0],
+    cat: src.cat, paidBy: 'none', note: src.note||'', recurring: true,
+    share1: src.share1, share2: src.share2, paid1: false, paid2: false
+  });
+}
+
+function editExp(id) {
+  const e = expenses.find(x => x.id === id);
+  if (!e) return;
+  editCat = e.cat || '📦';
+  document.getElementById('e-id').value        = id;
+  document.getElementById('e-name').value      = e.name;
+  document.getElementById('e-amount').value    = e.amount;
+  document.getElementById('e-date').value      = e.date || '';
+  document.getElementById('e-paidby').value    = e.paidBy || 'none';
+  document.getElementById('e-note').value      = e.note || '';
+  document.getElementById('e-recurring').value = e.recurring ? '1' : '0';
+  document.getElementById('e-recurring-row').classList.toggle('on', !!e.recurring);
+  buildEditCatPicker();
+  document.getElementById('edit-overlay').classList.add('show');
+}
+
+async function saveEdit() {
+  const id     = document.getElementById('e-id').value;
+  const name   = document.getElementById('e-name').value.trim();
+  const amount = parseFloat(document.getElementById('e-amount').value);
+  if (!name || !amount || amount<=0) return;
+  const {r1} = getRatio();
+  const share1 = parseFloat((amount*r1).toFixed(2));
+  const share2 = parseFloat((amount-share1).toFixed(2));
+  await fsUpdateExpense(id, {
+    name, amount, share1, share2,
+    date:      document.getElementById('e-date').value,
+    paidBy:    document.getElementById('e-paidby').value,
+    note:      document.getElementById('e-note').value.trim(),
+    recurring: document.getElementById('e-recurring').value === '1',
+    cat:       editCat
+  });
+  document.getElementById('edit-overlay').classList.remove('show');
+}
+
+function toggleRecurring(rowId, inputId) {
+  const row = document.getElementById(rowId);
+  const inp = document.getElementById(inputId);
+  const isOn = inp.value === '1';
+  inp.value = isOn ? '0' : '1';
+  row.classList.toggle('on', !isOn);
+}
+
+// ── SETTINGS ──
+function updateRatioPreview() {
+  const i1 = parseFloat(document.getElementById('s-inc1').value)||0;
+  const i2 = parseFloat(document.getElementById('s-inc2').value)||0;
+  const t  = i1+i2;
+  const p1 = t>0 ? Math.round(i1/t*100) : 50;
+  const n1 = document.getElementById('s-name1').value||'P1';
+  const n2 = document.getElementById('s-name2').value||'P2';
+  document.getElementById('rp-lbl1').textContent = `${n1} · ${p1}%`;
+  document.getElementById('rp-lbl2').textContent = `${n2} · ${100-p1}%`;
+  document.getElementById('rbar').style.width = p1+'%';
+}
+
+async function saveSettings() {
+  const newSettings = {
+    name1: document.getElementById('s-name1').value.trim()||'P1',
+    name2: document.getElementById('s-name2').value.trim()||'P2',
+    inc1:  parseFloat(document.getElementById('s-inc1').value)||0,
+    inc2:  parseFloat(document.getElementById('s-inc2').value)||0
+  };
+  // Recalculate all expense shares
+  const {r1} = (() => {
+    const t = (newSettings.inc1||0)+(newSettings.inc2||0);
+    if (!t) return {r1:0.5};
+    return {r1: newSettings.inc1/t};
+  })();
+  const batch = db.batch();
+  expenses.forEach(e => {
+    const share1 = parseFloat((e.amount*r1).toFixed(2));
+    const share2 = parseFloat((e.amount-share1).toFixed(2));
+    batch.update(db.collection('expenses').doc(e.id), {share1, share2});
+  });
+  await fsSaveSettings(newSettings);
+  await batch.commit();
+  document.getElementById('set-overlay').classList.remove('show');
+}
+
+function openAdd() {
+  document.getElementById('add-overlay').classList.add('show');
+  setTimeout(() => document.getElementById('f-name').focus(), 320);
+}
+function openSettings() {
+  applyNames();
+  document.getElementById('set-overlay').classList.add('show');
+}
+function closeOverlay(id, e) {
+  if (e.target === document.getElementById(id))
+    document.getElementById(id).classList.remove('show');
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') ['add-overlay','set-overlay','edit-overlay'].forEach(id =>
+    document.getElementById(id).classList.remove('show')
+  );
+});
+</script>
+</body>
+</html>
