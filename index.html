@@ -451,8 +451,19 @@ let selCat = '🏠', editCat = '🏠';
 let selDay = 1, editDay = 1;
 let unsubExp = null, unsubSet = null;
 
-// IDs currently mid-settle-animation — suppress onSnapshot re-render for these
-const animatingIds = new Set();
+// Render-lock: while any animation runs, onSnapshot queues a re-render instead of firing immediately
+let renderLocked = false;
+let renderPending = false;
+
+function lockRender() { renderLocked = true; }
+function unlockRender() {
+  renderLocked = false;
+  if (renderPending) { renderPending = false; render(); }
+}
+function safeRender() {
+  if (renderLocked) { renderPending = true; }
+  else { render(); }
+}
 
 // ── AUTH ──
 auth.onAuthStateChanged(user => {
@@ -489,18 +500,16 @@ function startListeners() {
     applyNames(); render();
   });
   unsubExp = db.collection('expenses').orderBy('createdAt','desc').onSnapshot(snap => {
-    // Only update expenses that are NOT currently animating
     const incoming = snap.docs.map(d => ({...d.data(), id:d.id}));
-    incoming.forEach(e => {
-      if (!animatingIds.has(e.id)) {
-        const idx = expenses.findIndex(x => x.id === e.id);
-        if (idx >= 0) expenses[idx] = e; else expenses.unshift(e);
-      }
-    });
-    // Remove deleted
+    // Merge incoming into local array
     const incomingIds = new Set(incoming.map(e => e.id));
-    expenses = expenses.filter(e => incomingIds.has(e.id) || animatingIds.has(e.id));
-    render(); setSyncing(false);
+    incoming.forEach(e => {
+      const idx = expenses.findIndex(x => x.id === e.id);
+      if (idx >= 0) expenses[idx] = e; else expenses.unshift(e);
+    });
+    // Remove deleted (keep local-only entries that haven't synced yet)
+    expenses = expenses.filter(e => incomingIds.has(e.id));
+    safeRender(); setSyncing(false);
   });
 }
 
@@ -699,46 +708,62 @@ function renderBalance() {
 
 // ── TOGGLE PAID ──
 async function togglePaid(id, person) {
-  const e = expenses.find(x => x.id===id);
+  const e = expenses.find(x => x.id === id);
   if (!e) return;
 
   const wasBothPaid = e.paid1 && e.paid2;
-  const newPaid1 = person===1 ? !e.paid1 : e.paid1;
-  const newPaid2 = person===2 ? !e.paid2 : e.paid2;
+  const newPaid1 = person === 1 ? !e.paid1 : e.paid1;
+  const newPaid2 = person === 2 ? !e.paid2 : e.paid2;
   const nowBothPaid = newPaid1 && newPaid2;
 
-  // ── Optimistic UI: animate the tapped pill immediately ──
+  // Update local state immediately
+  e.paid1 = newPaid1;
+  e.paid2 = newPaid2;
+
+  // ── Pure DOM: toggle the tapped pill without re-rendering anything ──
   const card = document.querySelector(`.exp-card[data-id="${id}"]`);
   if (card) {
-    const pill = card.querySelector(`.pill.p${person}`);
-    if (pill) {
-      pill.classList.toggle('done', person===1?newPaid1:newPaid2);
-      const check = pill.querySelector('.pill-check');
-      if (check) { check.classList.remove('bounce'); void check.offsetWidth; check.classList.add('bounce'); }
+    const tappedPill = card.querySelector(`.pill.p${person}`);
+    if (tappedPill) {
+      const isDone = person === 1 ? newPaid1 : newPaid2;
+      tappedPill.classList.toggle('done', isDone);
+      // Bounce the checkmark
+      const check = tappedPill.querySelector('.pill-check');
+      if (check) {
+        check.classList.remove('bounce');
+        void check.offsetWidth; // force reflow
+        check.classList.add('bounce');
+      }
     }
   }
+
+  // Update header stats without touching the list DOM
+  renderSummary();
+  renderBalance();
 
   if (!wasBothPaid && nowBothPaid) {
-    // ── Full settle: flash green + slide out ──
+    // ── SETTLE: lock renders, animate, then unlock ──
     if (card) {
-      animatingIds.add(id);
-      // Mark both pills done
+      lockRender();
+      // Mark both pills done visually
       card.querySelectorAll('.pill').forEach(p => p.classList.add('done'));
-      requestAnimationFrame(() => card.classList.add('settling'));
 
-      // After animation: remove from DOM suppression, spawn next if recurring
-      setTimeout(async () => {
-        animatingIds.delete(id);
-        if (e.recurring) await spawnNextMonth(e);
-        render();
-      }, 980);
+      // Small delay so the second checkmark bounce is visible before flash
+      setTimeout(() => {
+        card.classList.add('settling');
+        setTimeout(async () => {
+          // Spawn next month before unlocking so it's ready
+          if (e.recurring) await spawnNextMonth(e);
+          unlockRender();
+        }, 980);
+      }, 120);
+    } else {
+      if (e.recurring) await spawnNextMonth(e);
     }
   }
 
-  // Write to Firestore (optimistically update local copy too)
-  e.paid1 = newPaid1; e.paid2 = newPaid2;
-  renderSummary(); renderBalance();
-  await fsUpdate(id, {paid1:newPaid1, paid2:newPaid2});
+  // Write to Firestore in background
+  await fsUpdate(id, { paid1: newPaid1, paid2: newPaid2 });
 }
 
 // ── SPAWN NEXT MONTH ──
